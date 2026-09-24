@@ -75,6 +75,8 @@ EXTRA=(
   timeshift grub-btrfs inotify-tools cronie
   # Bateria
   tlp tlp-rdw ethtool smartmontools
+  # Docker
+  docker docker-compose docker-buildx
   # Base para o script
   base-devel git curl rsync zsh
 )
@@ -108,8 +110,23 @@ fi
 
 # --- Usuario -------------------------------------------------------------------
 msg "Grupos e shell do usuario"
-sudo usermod -aG wheel,docker "$USER"
+sudo usermod -aG wheel "$USER"
 [[ $(getent passwd "$USER" | cut -d: -f7) == /usr/bin/zsh ]] || sudo chsh -s /usr/bin/zsh "$USER"
+
+# --- Docker (sem sudo) ---------------------------------------------------------
+msg "Docker"
+# Quem esta no grupo "docker" fala direto com o /var/run/docker.sock, sem sudo.
+# (Isso equivale a acesso root na maquina; normal para uso pessoal.)
+getent group docker >/dev/null || sudo groupadd docker
+sudo usermod -aG docker "$USER"
+sudo systemctl enable --now docker.service
+# Testa como o seu usuario com o grupo docker (o grupo novo so vale na sessao
+# depois de relogar; aqui ele e aplicado so para o teste)
+if sudo -u "$USER" -g docker docker run --rm hello-world >/dev/null 2>&1; then
+  echo "docker sem sudo: OK"
+else
+  warn "teste do docker falhou; depois de relogar rode: docker run --rm hello-world"
+fi
 
 # --- zsh -----------------------------------------------------------------------
 msg "oh-my-zsh + plugins"
@@ -353,7 +370,7 @@ msg "Servicos"
 sudo systemctl disable --now power-profiles-daemon.service 2>/dev/null || true
 sudo systemctl mask power-profiles-daemon.service systemd-rfkill.service systemd-rfkill.socket
 sudo systemctl enable NetworkManager NetworkManager-dispatcher bluetooth cronie cups.socket \
-  docker nvidia-powerd systemd-timesyncd ufw tlp
+  nvidia-powerd systemd-timesyncd ufw tlp
 # TLP >= 1.9 traz o tlp-pd (API compativel com power-profiles-daemon), assim o
 # botao de perfil de energia do noctalia continua funcionando
 if systemctl cat tlp-pd.service &>/dev/null; then sudo systemctl enable tlp-pd.service; fi
@@ -372,5 +389,5 @@ sudo ufw --force enable
 
 msg "Pronto!"
 (( TIMESHIFT_OK )) || warn "Timeshift/grub-btrfs ficaram de fora (raiz nao e btrfs @)."
-echo "Backups das configs originais: /etc/*.antes e ~/*.antes"
-echo "Reinicie para aplicar NVIDIA, GRUB, SDDM e TLP."
+echo "Backups das configs originais: /etc/*.antes"
+echo "Reinicie para aplicar NVIDIA, GRUB, SDDM, TLP e o grupo docker (docker sem sudo)."
