@@ -1,0 +1,40 @@
+# Sourceado pelo uwsm antes de iniciar o Hyprland (wayland-wm-env@hyprland).
+#
+# Topologia deste notebook:
+#   pci-0000:01:00.0 = NVIDIA RTX 3050  -> e onde a saida HDMI-A-1 esta ligada
+#   pci-0000:00:02.0 = Intel UHD        -> e onde o painel eDP-1 esta ligado
+#
+# Sem AQ_DRM_DEVICES o Hyprland elege a Intel como GPU primaria. Com o monitor
+# externo sendo a unica saida, isso obriga um blit Intel -> NVIDIA a cada frame
+# e quebra o plano de cursor ("Backend requires blit, but cursor blit failed"),
+# derrubando tudo para cursor por software. Colocando a NVIDIA primeiro, render
+# e scanout ficam na mesma GPU.
+#
+# Condicional de proposito: SEM o cabo, a unica saida e o painel eDP-1, que e da
+# Intel. Forcar a NVIDIA ali so inverteria o problema e manteria a dGPU ligada a
+# toa. Avaliado no login, que e quando o uwsm sourceia este arquivo.
+#
+# Resolvido por caminho PCI, nao por card0/card1: a numeracao do DRM pode mudar
+# entre boots, o caminho PCI nao muda.
+
+_ext_connected=0
+for _status in /sys/class/drm/card*-*/status; do
+    case "$_status" in *-eDP-*) continue ;; esac
+    if [ "$(cat "$_status" 2>/dev/null)" = connected ]; then
+        _ext_connected=1
+        break
+    fi
+done
+
+if [ "$_ext_connected" = 1 ]; then
+    _nvidia=$(readlink -f /dev/dri/by-path/pci-0000:01:00.0-card 2>/dev/null)
+    _intel=$(readlink -f /dev/dri/by-path/pci-0000:00:02.0-card 2>/dev/null)
+    # So exporta se os dois resolveram; caso contrario deixa o Hyprland decidir
+    # sozinho, que e o comportamento antigo e seguro.
+    if [ -e "$_nvidia" ] && [ -e "$_intel" ]; then
+        export AQ_DRM_DEVICES="$_nvidia:$_intel"
+    fi
+    unset _nvidia _intel
+fi
+
+unset _ext_connected _status

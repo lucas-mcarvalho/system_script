@@ -13,8 +13,8 @@
 # O que faz:
 #   yay + AUR, todos os pacotes, zsh/oh-my-zsh, Quickshell/Noctalia, fontes,
 #   icones, temas GTK/Qt, tema SDDM, polkit, NVIDIA RTX 3050, Timeshift +
-#   grub-btrfs, TLP e Dolphin completo.
-#   Os dotfiles (~/.config etc.) NAO sao restaurados aqui: copie do HD externo.
+#   grub-btrfs, TLP, Docker, Dolphin completo e as configs de Hyprland, kitty,
+#   wlogout, rofi e uwsm (pasta configs/). O resto dos dotfiles vem do HD externo.
 # =============================================================================
 set -euo pipefail
 
@@ -134,6 +134,18 @@ msg "oh-my-zsh + plugins"
 ZC=~/.oh-my-zsh/custom/plugins
 [[ -d $ZC/zsh-autosuggestions ]]     || git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions "$ZC/zsh-autosuggestions"
 [[ -d $ZC/zsh-syntax-highlighting ]] || git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting "$ZC/zsh-syntax-highlighting"
+
+# --- Configs: Hyprland, kitty, wlogout (com icones), rofi, uwsm ----------------------
+msg "Restaurando configs de Hyprland, kitty, wlogout, rofi e uwsm"
+# Arquivos que ja existirem ficam salvos como *.antes
+mkdir -p ~/.config
+rsync -a --backup --suffix=.antes "$DIR/configs/" ~/.config/
+chmod +x ~/.config/hypr/*.sh 2>/dev/null || true
+# As configs usam caminhos absolutos da home antiga
+if [[ $HOME != /home/lucas ]]; then
+  grep -rl '/home/lucas' ~/.config/{hypr,kitty,wlogout,rofi,uwsm} 2>/dev/null \
+    | xargs -r sed -i "s|/home/lucas|$HOME|g" || true
+fi
 
 # --- Icones e temas ------------------------------------------------------------
 msg "Icones Tela-dracula"
@@ -289,6 +301,10 @@ rm -rf "$TMP/silent/.git"
 if [[ -d $DIR/etc/sddm-silent ]]; then
   cp -a "$DIR/etc/sddm-silent/metadata.desktop" "$TMP/silent/"
   cp -a "$DIR/etc/sddm-silent/configs/." "$TMP/silent/configs/"
+  # Imagens de fundo extras (a pillars-of-creation nao vem no repositorio do tema)
+  if [[ -d $DIR/etc/sddm-silent/backgrounds ]]; then
+    cp -a "$DIR/etc/sddm-silent/backgrounds/." "$TMP/silent/backgrounds/"
+  fi
 fi
 sudo rm -rf /usr/share/sddm/themes/silent
 sudo mkdir -p /usr/share/sddm/themes
