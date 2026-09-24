@@ -1,0 +1,35 @@
+#!/bin/sh
+
+LOG=/tmp/sddm-xsetup.log
+
+exec > "$LOG" 2>&1
+set -x
+
+echo "=== SDDM Xsetup ==="
+date
+
+echo "DISPLAY=$DISPLAY"
+echo "XAUTHORITY=$XAUTHORITY"
+
+/usr/bin/xrandr --query
+
+INTERNAL=$(/usr/bin/xrandr --query | awk '/ connected/ && $1 ~ /^eDP/ {print $1; exit}')
+EXTERNAL=$(/usr/bin/xrandr --query | awk '/ connected/ && $1 ~ /^HDMI/ {print $1; exit}')
+
+echo "INTERNAL=$INTERNAL"
+echo "EXTERNAL=$EXTERNAL"
+
+if [ -n "$INTERNAL" ] && [ -n "$EXTERNAL" ]; then
+    /usr/bin/xrandr \
+        --output "$INTERNAL" \
+        --mode 1920x1080 \
+        --rate 60 \
+        --primary \
+        --output "$EXTERNAL" \
+        --mode 1920x1080 \
+        --rate 60 \
+        --same-as "$INTERNAL"
+fi
+
+echo "=== Depois ==="
+/usr/bin/xrandr --query

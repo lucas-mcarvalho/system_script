@@ -1,0 +1,6 @@
+dracula-icons-theme
+heroic-games-launcher
+spotify
+ventoy-bin
+visual-studio-code-bin
+wlogout
