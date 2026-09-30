@@ -125,6 +125,36 @@ sudo timeshift --restore                # restaurar (interativo)
 Se o sistema não der boot, escolha **"Arch Linux snapshots"** no GRUB, inicie por um snapshot
 e rode `sudo timeshift --restore`.
 
+## Eduroam
+
+O `scripts/eduroam.sh` conecta à rede **eduroam** pelo NetworkManager (WPA2-Enterprise,
+EAP-TTLS com PAP). Ele **não** é executado pelo `pos-instalacao.sh`. Rode quando precisar:
+
+```bash
+./scripts/eduroam.sh           # conecta (cria o perfil na primeira vez)
+./scripts/eduroam.sh --reset   # apaga o perfil e pede usuário/senha de novo
+```
+
+Na primeira vez, o script pede o usuário (ex.: `nome@instituicao.br`) e a senha e cria o perfil
+`eduroam` com conexão automática. Das próximas vezes, ele só liga o Wi-Fi, procura a rede e
+conecta (espera até 30 s). O resultado aparece numa notificação (`notify-send`).
+
+| Variável | Para que serve |
+|---|---|
+| `EDUROAM_USER` / `EDUROAM_PASS` | Passa o usuário e a senha sem o prompt interativo |
+| `EDUROAM_IFACE` | Escolhe a interface Wi-Fi (o padrão é a primeira que o `nmcli` listar) |
+
+| Problema | Solução |
+|---|---|
+| "Rede 'eduroam' não está ao alcance" | Você está fora da área de cobertura, ou o Wi-Fi ainda está buscando. Tente de novo |
+| Falha ao conectar | A senha mudou ou está errada. Rode `./scripts/eduroam.sh --reset` |
+| A instituição não usa TTLS/PAP | Veja o método no [eduroam CAT](https://cat.eduroam.org) e ajuste `802-1x.eap` / `802-1x.phase2-auth` no script |
+
+> O perfil **não verifica o certificado do servidor**. Com PAP, isso deixa a senha exposta a um
+> ponto de acesso falso chamado "eduroam". Se a sua instituição disponibilizar o certificado da CA
+> no eduroam CAT, adicione `802-1x.ca-cert <arquivo>` e `802-1x.domain-suffix-match <domínio>`
+> ao `nmcli con add`.
+
 ## Arquivos da pasta
 
 ```
@@ -137,6 +167,8 @@ Script_backup/
 │   ├── wlogout/          # layout, css e ícones
 │   ├── rofi/             # config.rasi, tema e paletas de cores
 │   └── uwsm/             # env-hyprland (NVIDIA como GPU primária com HDMI)
+├── scripts/
+│   └── eduroam.sh        # conecta à rede eduroam (rodar manualmente, veja "Eduroam")
 ├── packages/
 │   ├── pacman.txt        # pacotes oficiais (um por linha, pode editar)
 │   └── aur.txt           # pacotes do AUR
