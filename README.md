@@ -155,6 +155,108 @@ conecta (espera até 30 s). O resultado aparece numa notificação (`notify-send
 > no eduroam CAT, adicione `802-1x.ca-cert <arquivo>` e `802-1x.domain-suffix-match <domínio>`
 > ao `nmcli con add`.
 
+## Secure Boot
+
+Os scripts em `scripts/secureboot/` ativam o Secure Boot sem quebrar o dual boot com o Windows nem
+o driver da NVIDIA. O `pos-instalacao.sh` **não** os executa. Rode-os manualmente, com `sudo`.
+
+| Script | Sistema | O que faz |
+|---|---|---|
+| `arch-1-preparar.sh` | Arch | Fase 1: chaves próprias, GRUB reinstalado e tudo assinado |
+| `arch-2-registrar-chaves.sh` | Arch | Fase 2: registra as chaves no firmware (precisa do Setup Mode) |
+| `arch-diag.sh` | Arch | Salva o diagnóstico em `~/secureboot/diag.txt` (útil se algo der errado) |
+| `ubuntu-nvidia.sh` | Ubuntu e derivados | Assina o módulo da NVIDIA com uma chave MOK |
+
+### Arch Linux
+
+O Arch não traz um bootloader assinado. Por isso, o script cria **chaves próprias** com o `sbctl`
+e as registra no firmware **junto com as da Microsoft** (necessárias para o Windows e para a
+option ROM da RTX).
+
+> ⚠️ Feito para **esta instalação**. O script assume:
+> - ESP em `/boot/efi`, com o GRUB **dentro** dela (`/boot/efi/grub/grub.cfg`), em modo `--removable`
+> - kernel `linux` (`/boot/vmlinuz-linux`)
+> - UKI em `/boot/efi/EFI/Linux/arch-linux.efi` (usada como entrada de emergência)
+>
+> Em outra máquina, ou no CachyOS/EndeavourOS, ajuste `ESP`, `CFG`, `UKI` e o nome do kernel no
+> topo do `arch-1-preparar.sh`. **Não use em Debian, Fedora ou Ubuntu.**
+
+Passo a passo:
+
+```bash
+sudo pacman -S sbctl efibootmgr
+sudo ./scripts/secureboot/arch-1-preparar.sh      # com o Secure Boot DESLIGADO
+```
+
+1. Reinicie (ainda **sem** Secure Boot) e confirme que o GRUB, o Arch e o Windows sobem.
+2. Na BIOS: **Security → Secure Boot → Reset to Setup Mode** (ou *Delete all keys*).
+3. De volta no Arch:
+   ```bash
+   sudo ./scripts/secureboot/arch-2-registrar-chaves.sh
+   ```
+4. Reinicie, entre na BIOS e **ative o Secure Boot**.
+5. Confira com `sbctl status`. Deve aparecer `Secure Boot: ✓ Enabled`.
+
+O que a fase 1 faz:
+
+- Faz backup da ESP inteira em `~/secureboot/esp-backup.tar`.
+- Cria as chaves (`sbctl create-keys`) em `/var/lib/sbctl/keys`.
+- Reinstala o GRUB com `--disable-shim-lock` e **todos os módulos embutidos**. Com o Secure Boot
+  ligado, o GRUB não carrega módulos `.mod` de fora. A lista é calculada a partir do `grub.cfg`
+  (e do `grub-btrfs.cfg`, se existir) e salva em `~/secureboot/grub-modules.txt`.
+- Assina o `BOOTX64.EFI`, a UKI e o `vmlinuz-linux`.
+- Cria a entrada **"Arch Linux (UKI)"** no firmware, que boota a UKI direto, sem o GRUB. Ela fica
+  depois do GRUB na ordem de boot e serve de emergência.
+
+Quando o kernel atualiza, o hook do `sbctl` no pacman reassina os arquivos sozinho.
+
+| Problema | Solução |
+|---|---|
+| `Setup Mode: Disabled` na fase 2 | As chaves da BIOS não foram apagadas. Repita o passo 2 |
+| GRUB não abre com Secure Boot ligado | Escolha a entrada "Arch Linux (UKI)" no menu de boot da BIOS (F12) e rode `sudo sbctl verify` |
+| `sbctl verify` mostra arquivo não assinado | `sudo sbctl sign -s <arquivo>` |
+| Nada dá boot | Desligue o Secure Boot na BIOS. Para voltar a ESP ao estado anterior: `sudo tar -C /boot/efi -xf ~/secureboot/esp-backup.tar` |
+
+### Ubuntu (com NVIDIA)
+
+O Ubuntu já boota com Secure Boot via *shim* assinado pela Microsoft. O problema é o **driver da
+NVIDIA**: quando ele é compilado pelo DKMS, o kernel se recusa a carregá-lo sem assinatura, e você
+fica sem a GPU.
+
+```bash
+sudo ./scripts/secureboot/ubuntu-nvidia.sh
+```
+
+O que ele faz:
+
+1. Confere se o sistema é Ubuntu (ou Mint/Pop!_OS), se bootou em UEFI e se tem GPU NVIDIA.
+2. Instala `shim-signed`, `mokutil`, `dkms` e os headers do kernel.
+3. Se não houver driver NVIDIA, instala o recomendado com `ubuntu-drivers install`. Ele prefere os
+   módulos já **assinados pela Canonical** e, nesse caso, nada mais é necessário.
+4. Cria (ou reaproveita) a chave MOK em `/var/lib/shim-signed/mok/` e configura o DKMS para
+   assinar com ela.
+5. Se a chave ainda não estiver registrada, pede uma **senha temporária** e agenda o registro.
+6. Recompila e assina os módulos DKMS da NVIDIA e mostra quem assinou cada um.
+
+Depois de rodar:
+
+1. Reinicie. Aparece uma **tela azul** (MOK Manager), e você tem ~10 s para apertar uma tecla.
+2. **Enroll MOK → Continue → Yes**, digite a senha e escolha **Reboot**.
+3. Se o Secure Boot estiver desligado, ative-o na BIOS.
+4. Confira com `mokutil --sb-state` e `nvidia-smi`.
+
+> ⚠️ No Ubuntu, **não** apague as chaves da BIOS (Setup Mode) e **não** use o `sbctl`. O shim
+> depende das chaves da Microsoft.
+
+Quando o kernel ou o driver atualiza, o DKMS assina sozinho com a mesma chave. A tela azul só
+volta se a chave for trocada.
+
+| Problema | Solução |
+|---|---|
+| `nvidia-smi`: *couldn't communicate with the NVIDIA driver* | A chave não foi registrada (a tela azul passou). Rode o script de novo e reinicie |
+| Módulo aparece como `SEM ASSINATURA` | `sudo dkms install --force nvidia/<versão> -k $(uname -r)` |
+| A senha não funciona na tela azul | O teclado lá usa layout americano. Use uma senha só com letras e números |
+
 ## Arquivos da pasta
 
 ```
@@ -168,7 +270,8 @@ Script_backup/
 │   ├── rofi/             # config.rasi, tema e paletas de cores
 │   └── uwsm/             # env-hyprland (NVIDIA como GPU primária com HDMI)
 ├── scripts/
-│   └── eduroam.sh        # conecta à rede eduroam (rodar manualmente, veja "Eduroam")
+│   ├── eduroam.sh        # conecta à rede eduroam (rodar manualmente, veja "Eduroam")
+│   └── secureboot/       # Secure Boot no Arch e no Ubuntu+NVIDIA (veja "Secure Boot")
 ├── packages/
 │   ├── pacman.txt        # pacotes oficiais (um por linha, pode editar)
 │   └── aur.txt           # pacotes do AUR
