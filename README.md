@@ -166,6 +166,7 @@ o driver da NVIDIA. O `pos-instalacao.sh` **não** os executa. Rode-os manualmen
 | `arch-2-registrar-chaves.sh` | Arch | Fase 2: registra as chaves no firmware (precisa do Setup Mode) |
 | `arch-diag.sh` | Arch | Salva o diagnóstico em `~/secureboot/diag.txt` (útil se algo der errado) |
 | `ubuntu-nvidia.sh` | Ubuntu e derivados | Assina o módulo da NVIDIA com uma chave MOK |
+| `fedora-nvidia.sh` | Fedora | Assina o módulo da NVIDIA (akmods/RPM Fusion) com uma chave MOK |
 
 ### Arch Linux
 
@@ -257,6 +258,41 @@ volta se a chave for trocada.
 | Módulo aparece como `SEM ASSINATURA` | `sudo dkms install --force nvidia/<versão> -k $(uname -r)` |
 | A senha não funciona na tela azul | O teclado lá usa layout americano. Use uma senha só com letras e números |
 
+### Fedora (com NVIDIA)
+
+Igual ao Ubuntu: o Fedora já boota com Secure Boot via *shim*, e o problema é o **driver da NVIDIA**
+do RPM Fusion, que o `akmods` compila na própria máquina. Sem assinatura, o kernel não o carrega.
+
+```bash
+sudo ./scripts/secureboot/fedora-nvidia.sh
+```
+
+O que ele faz:
+
+1. Confere se o sistema é Fedora, se bootou em UEFI e se tem GPU NVIDIA.
+2. Habilita o RPM Fusion (free e nonfree), se ainda não estiver.
+3. Instala `shim-x64`, `mokutil`, `akmods` e o `kernel-devel` do kernel atual.
+4. Cria (ou reaproveita) a chave do akmods com `kmodgenca -a`, em `/etc/pki/akmods/`. O akmods
+   assina sozinho com ela.
+5. Se a chave ainda não estiver registrada, pede uma **senha temporária** e agenda o registro.
+6. Instala o `akmod-nvidia` (se faltar), recompila o módulo com `akmods --force` e mostra quem
+   assinou cada um.
+
+Depois de rodar, siga os mesmos passos do Ubuntu: reinicie, **Enroll MOK → Continue → Yes**, digite
+a senha, **Reboot**, ative o Secure Boot na BIOS (se estiver desligado) e confira com
+`mokutil --sb-state` e `nvidia-smi`.
+
+> ⚠️ Assim como no Ubuntu, **não** apague as chaves da BIOS e **não** use o `sbctl`.
+
+Quando o kernel atualiza, o akmods recompila e assina o módulo no próximo boot (ou ao instalar o
+kernel). Espere ele terminar antes de reiniciar: `sudo akmods --kernels <versão>` força a compilação.
+
+| Problema | Solução |
+|---|---|
+| `nvidia-smi`: *couldn't communicate with the NVIDIA driver* | A chave não foi registrada (a tela azul passou). Rode o script de novo e reinicie |
+| Módulo aparece como `SEM ASSINATURA` | O módulo foi compilado antes da chave existir. `sudo akmods --force --kernels $(uname -r)` |
+| Após atualizar o kernel, a GPU some | O akmods ainda não compilou para o kernel novo. `sudo akmods --force` e reinicie |
+
 ## Arquivos da pasta
 
 ```
@@ -271,7 +307,7 @@ Script_backup/
 │   └── uwsm/             # env-hyprland (NVIDIA como GPU primária com HDMI)
 ├── scripts/
 │   ├── eduroam.sh        # conecta à rede eduroam (rodar manualmente, veja "Eduroam")
-│   └── secureboot/       # Secure Boot no Arch e no Ubuntu+NVIDIA (veja "Secure Boot")
+│   └── secureboot/       # Secure Boot no Arch, Ubuntu+NVIDIA e Fedora+NVIDIA (veja "Secure Boot")
 ├── packages/
 │   ├── pacman.txt        # pacotes oficiais (um por linha, pode editar)
 │   └── aur.txt           # pacotes do AUR
