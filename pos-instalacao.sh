@@ -59,7 +59,7 @@ EXTRA=(
   # Tema SDDM silent (dependencias) + X para o Xsetup do SDDM
   sddm qt6-svg qt6-virtualkeyboard qt6-multimedia-ffmpeg xorg-server xorg-xrandr
   # Temas Qt/GTK e icones
-  kvantum kvantum-qt5 qt5ct qt6ct nwg-look papirus-icon-theme kde-gtk-config
+  kvantum kvantum-qt5 qt5ct qt6ct nwg-look papirus-icon-theme
   # Fontes
   ttf-jetbrains-mono-nerd ttf-hack ttf-dejavu ttf-liberation
   noto-fonts noto-fonts-cjk noto-fonts-emoji adwaita-fonts

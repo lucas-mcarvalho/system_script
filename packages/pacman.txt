@@ -88,9 +88,7 @@ pipewire
 pipewire-alsa
 pipewire-jack
 pipewire-pulse
-plasma-meta
 polkit-gnome
-polkit-kde-agent
 proton-vpn-cli
 proton-vpn-gtk-app
 python-pip
