@@ -100,6 +100,26 @@ cat /sys/bus/pci/devices/0000:01:00.0/power/runtime_status   # "suspended" = RTX
 > O limite de carga (parar em 80%) **não** está disponível neste Acer, porque o kernel não
 > oferece `charge_control_end_threshold`. O pacote AUR `acer-wmi-battery-dkms` pode resolver isso.
 
+### Trocar o perfil (ventoinha)
+
+No perfil `balanced-performance`, o firmware da Acer liga a ventoinha forte mesmo com a CPU fria.
+O `scripts/perfil.sh` troca o perfil do firmware na hora. Ele **não** é executado pelo
+`pos-instalacao.sh`. Para usar como comando `perfil`, copie para o PATH:
+
+```bash
+install -m 755 scripts/perfil.sh ~/.local/bin/perfil
+```
+
+| Comando | O que faz |
+|---|---|
+| `perfil` | Mostra o perfil atual e o padrão salvo no TLP |
+| `perfil silencioso` | Troca agora (vale até reiniciar ou tirar/pôr o carregador) |
+| `perfil equilibrado --fixo` | Troca e salva como padrão na tomada (`PLATFORM_PROFILE_ON_AC`) |
+| `perfil padrao` | Volta ao padrão original (`balanced-performance`) e salva |
+
+Atalhos: `silencioso` (quiet), `economia` (low-power), `equilibrado` (balanced),
+`normal` (balanced-performance), `desempenho` (performance). Os nomes em inglês também funcionam.
+
 ## Docker
 
 Depois de reiniciar (ou sair e entrar de novo na sessão), o docker funciona sem `sudo`:
@@ -307,6 +327,7 @@ Script_backup/
 │   └── uwsm/             # env-hyprland (NVIDIA como GPU primária com HDMI)
 ├── scripts/
 │   ├── eduroam.sh        # conecta à rede eduroam (rodar manualmente, veja "Eduroam")
+│   ├── perfil.sh         # troca o perfil de energia/ventoinha (veja "Trocar o perfil")
 │   └── secureboot/       # Secure Boot no Arch, Ubuntu+NVIDIA e Fedora+NVIDIA (veja "Secure Boot")
 ├── packages/
 │   ├── pacman.txt        # pacotes oficiais (um por linha, pode editar)
