@@ -13,10 +13,11 @@
 # O que faz:
 #   yay + AUR, todos os pacotes, zsh/oh-my-zsh, Quickshell/Noctalia, fontes,
 #   icones, temas GTK/Qt, tema SDDM, polkit, NVIDIA RTX 3050, Timeshift +
-#   grub-btrfs, TLP, Docker, Dolphin completo e as configs de Hyprland, kitty,
+#   grub-btrfs, TLP, Docker, Dolphin (sem o KDE Plasma) e as configs de Hyprland, kitty,
 #   wlogout, rofi e uwsm (pasta configs/). O resto dos dotfiles vem do HD externo.
 # =============================================================================
 set -euo pipefail
+export LC_COLLATE=C   # sort e comm precisam da mesma ordenacao
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -63,14 +64,15 @@ EXTRA=(
   # Fontes
   ttf-jetbrains-mono-nerd ttf-hack ttf-dejavu ttf-liberation
   noto-fonts noto-fonts-cjk noto-fonts-emoji adwaita-fonts
-  # Dolphin e o essencial para ele funcionar bem fora do Plasma
-  dolphin dolphin-plugins          # gerenciador + integracao git/dropbox/etc.
-  kio-extras kio-fuse kio-admin    # sftp/smb/mtp/thumbnails, abrir remotos em apps nao-KDE, modo admin
-  ffmpegthumbs kdegraphics-thumbnailers kdesdk-thumbnailers  # miniaturas de video, PDF/imagens, codigo
+  # Dolphin sem o KDE Plasma: so o gerenciador e o que ele precisa fora do Plasma.
+  # NAO instalar plasma/plasma-meta, kde-cli-tools, kde-gtk-config, baloo etc.
+  dolphin                          # gerenciador de arquivos
+  kio-extras kio-fuse              # sftp/smb/mtp/thumbnails, abrir remotos em apps nao-KDE
+  ffmpegthumbs kdegraphics-thumbnailers  # miniaturas de video e PDF/imagens
   kimageformats qt6-imageformats icoutils libappimage taglib # mais formatos de imagem, icones .exe, AppImage
-  ark konsole                      # compactados e painel de terminal (F4)
-  kde-cli-tools archlinux-xdg-menu # menu "Abrir com" funcionando no Hyprland (XDG_MENU_PREFIX=arch-)
-  kdenetwork-filesharing udisks2 ntfs-3g baloo breeze-icons
+  ark                              # compactados
+  archlinux-xdg-menu               # menu "Abrir com" funcionando no Hyprland (XDG_MENU_PREFIX=arch-)
+  udisks2 udiskie ntfs-3g exfatprogs breeze-icons
   # Snapshots
   timeshift grub-btrfs inotify-tools cronie
   # Bateria
@@ -87,6 +89,14 @@ AVAIL=$(pacman -Slq | sort -u)
 mapfile -t PKGS < <(printf '%s\n' "${WANTED[@]}" | sort -u | comm -12 - <(echo "$AVAIL"))
 MISSING=$(printf '%s\n' "${WANTED[@]}" | sort -u | comm -23 - <(echo "$AVAIL"))
 if [[ -n $MISSING ]]; then warn "Fora dos repositorios (ignorados): $(echo $MISSING)"; fi
+
+# Garante que nada do KDE Plasma entra (nem como dependencia)
+# (plasma-activities fica de fora: e so uma biblioteca exigida pelo Dolphin)
+PLASMA=$( { pacman -Sgq plasma 2>/dev/null; printf '%s\n' plasma-meta kde-gtk-config polkit-kde-agent; } \
+  | grep -vx plasma-activities | sort -u)
+mapfile -t PKGS < <(printf '%s\n' "${PKGS[@]}" | sort -u | comm -23 - <(echo "$PLASMA" | sort -u))
+PULLED=$(sudo pacman -Sp --print-format '%n' --needed "${PKGS[@]}" 2>/dev/null | sort -u | comm -12 - <(echo "$PLASMA" | sort -u) || true)
+if [[ -n $PULLED ]]; then warn "Pacotes do Plasma puxados como dependencia: $(echo $PULLED)"; fi
 
 sudo pacman -Su --needed --noconfirm "${PKGS[@]}" || {
   warn "Instalacao automatica falhou (provavel conflito). Resolva de forma interativa:"
@@ -173,8 +183,8 @@ gs icon-theme 'Tela-dracula'
 gs cursor-theme 'Adwaita'
 gs cursor-size 24
 gs color-scheme 'prefer-dark'
-gs font-name 'JetBrainsMonoNL Nerd Font Propo Italic 10'
-gs document-font-name 'JetBrainsMonoNL Nerd Font Propo Italic 10'
+gs font-name 'JetBrainsMono Nerd Font 10'
+gs document-font-name 'JetBrainsMono Nerd Font 10'
 gs monospace-font-name 'JetBrainsMono Nerd Font Mono 10'
 gs font-hinting 'slight'
 gs font-antialiasing 'grayscale'

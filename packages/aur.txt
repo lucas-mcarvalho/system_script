@@ -1,4 +1,5 @@
-dracula-icons-theme
-spotify
+brave-bin
+claude-code
+heroic-games-launcher-bin
 visual-studio-code-bin
-wlogout
+wlogout-git

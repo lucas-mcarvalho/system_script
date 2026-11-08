@@ -93,7 +93,7 @@ hl.on("monitor.removed", relayout)
 local terminal = "kitty"
 local fileManager = "dolphin"
 local menu = "rofi -show drun"
-local browser = "firefox"
+local browser = "brave"
 local editor = "code"
 local logout = "wlogout"
 
@@ -101,7 +101,6 @@ local logout = "wlogout"
 ---- AUTOSTART ----
 -------------------
 hl.on("hyprland.start", function()
-	hl.exec_cmd("nm-applet &")
 	hl.exec_cmd("kbuildsycoca6 --noincremental")
 	hl.exec_cmd("hypridle")
 	hl.exec_cmd("waypaper --restore")
@@ -109,6 +108,7 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("/usr/lib/xdg-desktop-portal-hyprland")
 	hl.exec_cmd("/usr/lib/xdg-desktop-portal")
 	hl.exec_cmd("noctalia")
+	hl.exec_cmd("udiskie --automount --notify")
 	hl.exec_cmd("xhost si:localuser:root")
 	--[[[hl.exec_cmd("hyprctl keyword workspace 1,monitor:HDMI-A-1,default:true")
     hl.exec_cmd("hyprctl keyword workspace 2,monitor:HDMI-A-1,default:true")
@@ -147,7 +147,9 @@ hl.config({
 
 	render = {
 		-- 1 = direct scanout: video/jogo em tela cheia vai direto pro display
-		direct_scanout = 1,
+		direct_scanout = 0,
+		cm_auto_hdr = 0,
+		cm_enabled = false,
 	},
 
 	ecosystem = {
@@ -360,6 +362,13 @@ hl.window_rule({
 	name = "steam-games-tearing",
 	match = { class = "^steam_app_.*" },
 	immediate = true,
+})
+
+-- God of War III: não deixa o hypridle ligar o protetor de tela/apagar a tela (o controle não conta como atividade)
+hl.window_rule({
+	name = "gow3-idle-inhibit",
+	match = { class = "^[Gg]ow3$" },
+	idle_inhibit = "always",
 })
 
 -------------------------------

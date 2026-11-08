@@ -1,7 +1,7 @@
 # Pós-instalação do Arch Linux (Acer Nitro V)
 
 Script que deixa um Arch **recém-instalado** igual ao sistema atual: Hyprland + Noctalia/Quickshell,
-zsh, temas, SDDM, NVIDIA, snapshots, TLP e Dolphin. Ele não instala o sistema do zero. Primeiro
+zsh, temas, SDDM, NVIDIA, snapshots, TLP e Dolphin, **sem o KDE Plasma**. Ele não instala o sistema do zero. Primeiro
 você instala o Arch, depois roda o script.
 
 **Hardware alvo:** Acer Nitro V · Intel i5-13420H (UHD Graphics) · NVIDIA RTX 3050 6GB Laptop ·
@@ -56,13 +56,13 @@ forma interativa. Nesse caso, responda e o script continua.
 | Etapa | Detalhes |
 |---|---|
 | **pacman** | `Color`, `ILoveCandy`, `ParallelDownloads = 20`, habilita o `multilib` |
-| **Pacotes** | Tudo de `packages/pacman.txt` + os essenciais listados no script. Pacotes que sumiram dos repositórios são ignorados, com aviso |
-| **yay + AUR** | Compila o `yay-bin` e instala `packages/aur.txt` (Spotify, VS Code, Heroic, wlogout, Ventoy, ícones Dracula) |
+| **Pacotes** | Tudo de `packages/pacman.txt` + os essenciais listados no script. Pacotes que sumiram dos repositórios são ignorados, com aviso. Nada do KDE Plasma é instalado (o script avisa se algum pacote do Plasma vier como dependência) |
+| **yay + AUR** | Compila o `yay-bin` e instala `packages/aur.txt` (Brave, VS Code, Heroic, wlogout, Claude Code). O Spotify vem do repositório oficial (`spotify-launcher`) |
 | **zsh** | Define o zsh como shell padrão e instala o oh-my-zsh + `zsh-autosuggestions` e `zsh-syntax-highlighting` |
 | **Desktop** | Hyprland, uwsm, Quickshell, Noctalia, portais xdg, polkit-gnome, gnome-keyring |
 | **Temas** | GTK Graphite-Dark, ícones Tela-dracula (do GitHub, se ainda não existirem), Kvantum, qt5ct/qt6ct, nwg-look. Aplica o tema, os ícones, o cursor e as fontes via `gsettings` |
 | **Fontes** | JetBrains Mono Nerd, Hack, Noto (+ CJK e emoji), DejaVu, Liberation, Adwaita |
-| **Dolphin** | Plugins, kio-extras/fuse/admin, miniaturas (vídeo, PDF, código), formatos de imagem, Ark, Konsole (F4), menu "Abrir com" funcionando no Hyprland |
+| **Dolphin** | Só o Dolphin e o que ele precisa fora do Plasma: kio-extras/fuse, miniaturas (vídeo, PDF), formatos de imagem, Ark, udiskie e o menu "Abrir com" funcionando no Hyprland. Sem Konsole, Baloo, kde-cli-tools nem kde-gtk-config |
 | **Docker** | `docker`, `docker-compose`, `docker-buildx`. Adiciona o seu usuário ao grupo `docker` (**docker sem sudo**), ativa o serviço e testa com `hello-world` |
 | **NVIDIA** | `nvidia-open`, módulos no initramfs, `modeset=1 fbdev=1`, RTD3 (desliga a RTX quando ociosa), `nvidia-powerd` |
 | **Acer** | `acer_wmi predator_v4=1` (perfis de energia do firmware) |
