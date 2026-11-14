@@ -27,30 +27,44 @@ hl.monitor({
 -- DESLIGADO (e nao espelhado: espelho nao ganha wl_output proprio, o que quebra
 -- a barra e bloqueia direct scanout). Sem o externo, o painel assume sozinho.
 local LAPTOP = "eDP-1"
-local EXTERNAL = "HDMI-A-1"
 local LAPTOP_MODE = "1920x1080@165"
 local EXTERNAL_MODE = "1920x1080@179.96"
+local PROFILE = (os.getenv("HOME") or "/home/lucas") .. "/.config/hypr/monitor-profile.sh"
 
--- Fail-safe: qualquer erro na deteccao cai em "sem externo", que mantem o
--- painel ligado. Nunca deve sobrar zero monitor ativo (vira FALLBACK headless).
-local function external_connected()
-	local ok, pipe = pcall(io.popen,
-		"grep -lx connected /sys/class/drm/card*-*/status 2>/dev/null | grep -v eDP")
+-- Tres perfis, decididos por monitor-profile.sh (que so le /sys):
+--   home   -> monitor de casa (reconhecido pelo EDID, em qualquer porta):
+--             painel DESLIGADO, externo em EXTERNAL_MODE.
+--   mirror -> qualquer outro externo: painel LIGADO e o externo espelha ele.
+--   laptop -> sem externo: so o painel.
+-- Fail-safe: qualquer erro na deteccao cai em "laptop", que mantem o painel
+-- ligado. Nunca deve sobrar zero monitor ativo (vira FALLBACK headless).
+local function monitor_profile()
+	local ok, pipe = pcall(io.popen, PROFILE .. " detect 2>/dev/null")
 	if not ok or not pipe then
-		return false
+		return "laptop", {}
 	end
-	local out = pipe:read("*a") or ""
+	local out = pipe:read("*l") or ""
 	pipe:close()
-	return out:match("%S") ~= nil
+	local words = {}
+	for w in out:gmatch("%S+") do
+		words[#words + 1] = w
+	end
+	local profile = table.remove(words, 1) or "laptop"
+	if (profile ~= "home" and profile ~= "mirror") or #words == 0 then
+		return "laptop", {}
+	end
+	return profile, words
 end
 
-if external_connected() then
+local profile, externals = monitor_profile()
+
+if profile == "home" then
 	hl.monitor({
 		output = LAPTOP,
 		disabled = true,
 	})
 	hl.monitor({
-		output = EXTERNAL,
+		output = externals[1],
 		mode = EXTERNAL_MODE,
 		position = "0x0",
 		scale = 1,
@@ -62,6 +76,15 @@ else
 		position = "0x0",
 		scale = 1,
 	})
+	for _, output in ipairs(externals) do
+		hl.monitor({
+			output = output,
+			mode = "preferred",
+			position = "0x0",
+			scale = 1,
+			mirror = LAPTOP,
+		})
+	end
 end
 
 -- hl.monitor so vale no parse da config, entao hotplug = reload (que re-avalia
@@ -83,7 +106,8 @@ local function relayout()
 		w:write(tostring(os.time()))
 		w:close()
 	end
-	hl.exec_cmd("hyprctl reload")
+	-- "learn" salva o monitor de casa na primeira vez que ele aparece.
+	hl.exec_cmd(PROFILE .. " learn; hyprctl reload")
 end
 
 hl.on("monitor.added", relayout)
@@ -101,6 +125,8 @@ local logout = "wlogout"
 ---- AUTOSTART ----
 -------------------
 hl.on("hyprland.start", function()
+	-- Boot ja com o monitor de casa plugado e ainda nao salvo: aprende e reaplica.
+	hl.exec_cmd(PROFILE .. " learn && hyprctl reload")
 	hl.exec_cmd("kbuildsycoca6 --noincremental")
 	hl.exec_cmd("hypridle")
 	hl.exec_cmd("waypaper --restore")

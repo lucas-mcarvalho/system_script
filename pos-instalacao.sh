@@ -14,7 +14,9 @@
 #   yay + AUR, todos os pacotes, zsh/oh-my-zsh, Quickshell/Noctalia, fontes,
 #   icones, temas GTK/Qt, tema SDDM, polkit, NVIDIA RTX 3050, Timeshift +
 #   grub-btrfs, TLP, Docker, Dolphin (sem o KDE Plasma) e as configs de Hyprland, kitty,
-#   wlogout, rofi e uwsm (pasta configs/). O resto dos dotfiles vem do HD externo.
+#   wlogout, rofi, uwsm, LazyVim (nvim), qt5ct/qt6ct, kdeglobals e GTK (pasta configs/),
+#   a config do Noctalia (pasta noctalia/) e o comando "perfil" (scripts/perfil.sh).
+#   O resto dos dotfiles (~/.zshrc, wallpapers...) vem do HD externo.
 # =============================================================================
 set -euo pipefail
 export LC_COLLATE=C   # sort e comm precisam da mesma ordenacao
@@ -61,6 +63,9 @@ EXTRA=(
   sddm qt6-svg qt6-virtualkeyboard qt6-multimedia-ffmpeg xorg-server xorg-xrandr
   # Temas Qt/GTK e icones
   kvantum kvantum-qt5 qt5ct qt6ct nwg-look papirus-icon-theme
+  breeze                           # estilo Qt6 "Breeze" usado no qt6ct (so o estilo, sem o Plasma)
+  # LazyVim (neovim + o que ele pede) e jq (usado pelo monitor-profile.sh)
+  neovim ripgrep fd fzf lazygit tree-sitter-cli unzip wl-clipboard jq
   # Fontes
   ttf-jetbrains-mono-nerd ttf-hack ttf-dejavu ttf-liberation
   noto-fonts noto-fonts-cjk noto-fonts-emoji adwaita-fonts
@@ -91,9 +96,10 @@ MISSING=$(printf '%s\n' "${WANTED[@]}" | sort -u | comm -23 - <(echo "$AVAIL"))
 if [[ -n $MISSING ]]; then warn "Fora dos repositorios (ignorados): $(echo $MISSING)"; fi
 
 # Garante que nada do KDE Plasma entra (nem como dependencia)
-# (plasma-activities fica de fora: e so uma biblioteca exigida pelo Dolphin)
+# Ficam de fora do filtro: plasma-activities (biblioteca exigida pelo Dolphin) e
+# breeze + as dependencias dele (estilo Qt6 do tema atual; nao trazem o desktop)
 PLASMA=$( { pacman -Sgq plasma 2>/dev/null; printf '%s\n' plasma-meta kde-gtk-config polkit-kde-agent; } \
-  | grep -vx plasma-activities | sort -u)
+  | grep -vxE 'plasma-activities|breeze|breeze-cursors|kdecoration' | sort -u)
 mapfile -t PKGS < <(printf '%s\n' "${PKGS[@]}" | sort -u | comm -23 - <(echo "$PLASMA" | sort -u))
 PULLED=$(sudo pacman -Sp --print-format '%n' --needed "${PKGS[@]}" 2>/dev/null | sort -u | comm -12 - <(echo "$PLASMA" | sort -u) || true)
 if [[ -n $PULLED ]]; then warn "Pacotes do Plasma puxados como dependencia: $(echo $PULLED)"; fi
@@ -145,17 +151,43 @@ ZC=~/.oh-my-zsh/custom/plugins
 [[ -d $ZC/zsh-autosuggestions ]]     || git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions "$ZC/zsh-autosuggestions"
 [[ -d $ZC/zsh-syntax-highlighting ]] || git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting "$ZC/zsh-syntax-highlighting"
 
-# --- Configs: Hyprland, kitty, wlogout (com icones), rofi, uwsm ----------------------
-msg "Restaurando configs de Hyprland, kitty, wlogout, rofi e uwsm"
+# --- Configs: Hyprland, kitty, wlogout, rofi, uwsm, nvim, Qt e GTK -------------------
+msg "Restaurando configs (Hyprland, kitty, wlogout, rofi, uwsm, nvim, qt5ct/qt6ct, GTK)"
 # Arquivos que ja existirem ficam salvos como *.antes
 mkdir -p ~/.config
 rsync -a --backup --suffix=.antes "$DIR/configs/" ~/.config/
 chmod +x ~/.config/hypr/*.sh 2>/dev/null || true
 # As configs usam caminhos absolutos da home antiga
 if [[ $HOME != /home/lucas ]]; then
-  grep -rl '/home/lucas' ~/.config/{hypr,kitty,wlogout,rofi,uwsm} 2>/dev/null \
+  grep -rl '/home/lucas' ~/.config/{hypr,kitty,wlogout,rofi,uwsm,qt6ct} 2>/dev/null \
     | xargs -r sed -i "s|/home/lucas|$HOME|g" || true
 fi
+
+# --- Scripts do sistema --------------------------------------------------------
+msg "Comando perfil (perfil de energia/ventoinha)"
+# Os scripts do Hyprland (monitor-profile.sh, lid-monitor-mode.sh...) ja foram
+# com a pasta configs/hypr. eduroam.sh e secureboot/ continuam manuais.
+install -Dm755 "$DIR/scripts/perfil.sh" ~/.local/bin/perfil
+
+# --- Noctalia ------------------------------------------------------------------
+msg "Config do Noctalia (barra, plugins, paleta Mine)"
+# O Noctalia guarda tudo em ~/.local/state/noctalia (nao em ~/.config)
+NOCT="${XDG_STATE_HOME:-$HOME/.local/state}/noctalia"
+mkdir -p "$NOCT"
+rsync -a --backup --suffix=.antes "$DIR/noctalia/" "$NOCT/"
+chmod 700 "$NOCT"   # depois do rsync, que copia a permissao da pasta do repositorio
+if [[ $HOME != /home/lucas ]]; then sed -i "s|/home/lucas|$HOME|g" "$NOCT/settings.toml"; fi
+touch "$NOCT/.setup-complete"   # pula o assistente de primeira execucao
+WALL_DIR=$(grep -oP '^directory = "\K[^"]+' "$NOCT/settings.toml" || true)
+if [[ -n $WALL_DIR && ! -d $WALL_DIR ]]; then
+  warn "Wallpapers do Noctalia nao encontrados: copie a pasta do HD externo para $WALL_DIR"
+fi
+
+# --- LazyVim -------------------------------------------------------------------
+msg "LazyVim (instalando os plugins do lazy-lock.json)"
+# Sem isso os plugins seriam baixados so na primeira vez que o nvim abrir
+nvim --headless "+Lazy! restore" +qa >/dev/null 2>&1 \
+  || warn "nao deu para baixar os plugins agora; eles instalam ao abrir o nvim"
 
 # --- Icones e temas ------------------------------------------------------------
 msg "Icones Tela-dracula"
@@ -174,18 +206,31 @@ if [[ ! -d ~/.local/share/themes/Graphite-Dark ]]; then
   (cd "$TMP/graphite" && ./install.sh -c dark -d "$HOME/.local/share/themes")
   rm -rf "$TMP"
 fi
-# Kvantum (GraphiteDark), qt5ct/qt6ct e kdeglobals: vem com os dotfiles do HD.
+# Qt: qt6ct (estilo Breeze + cores BreezeDark), qt5ct e kdeglobals ja vieram de configs/.
+
+# GTK4/libadwaita nao le o gtk-theme: precisa do css do tema em ~/.config/gtk-4.0
+# (mesmos links que o nwg-look cria)
+G4=~/.local/share/themes/Graphite-Dark/gtk-4.0
+if [[ -d $G4 ]]; then
+  mkdir -p ~/.config/gtk-4.0
+  for f in assets gtk.css gtk-dark.css; do
+    if [[ -e ~/.config/gtk-4.0/$f && ! -L ~/.config/gtk-4.0/$f ]]; then
+      mv ~/.config/gtk-4.0/$f ~/.config/gtk-4.0/$f.antes
+    fi
+    ln -sfn "$G4/$f" ~/.config/gtk-4.0/$f
+  done
+fi
 
 msg "Aplicando temas GTK, icones, cursor e fontes"
 gs() { gsettings set org.gnome.desktop.interface "$@" 2>/dev/null || true; }
 gs gtk-theme 'Graphite-Dark'
-gs icon-theme 'Tela-dracula'
+gs icon-theme 'breeze-dark'
 gs cursor-theme 'Adwaita'
 gs cursor-size 24
 gs color-scheme 'prefer-dark'
 gs font-name 'JetBrainsMono Nerd Font 10'
 gs document-font-name 'JetBrainsMono Nerd Font 10'
-gs monospace-font-name 'JetBrainsMono Nerd Font Mono 10'
+gs monospace-font-name 'JetBrainsMono Nerd Font 10'
 gs font-hinting 'slight'
 gs font-antialiasing 'grayscale'
 fc-cache -f

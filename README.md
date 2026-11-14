@@ -31,7 +31,7 @@ Use o `archinstall` (ou instale manualmente) com:
 Depois do primeiro boot, logado como **seu usuário** (não root) e com internet:
 
 ```bash
-cd Script_backup
+cd system_script
 chmod +x pos-instalacao.sh
 ./pos-instalacao.sh
 ```
@@ -41,13 +41,15 @@ forma interativa. Nesse caso, responda e o script continua.
 
 ## 3. Depois do script
 
-1. Copie o resto das dotfiles do HD externo (`~/.zshrc`, `~/.local/share/themes`,
-   `~/.local/state/noctalia`, Kvantum, qt5ct/qt6ct…). As configs do **Hyprland, kitty,
-   wlogout, rofi e uwsm já vêm com o script**.
-2. Coloque os wallpapers no lugar. O `hyprlock.conf` usa `~/Imagens/Hyprlock/3.jpg`, e o
+1. Copie o resto das dotfiles do HD externo (`~/.zshrc` e o que mais faltar). As configs do
+   **Hyprland, kitty, wlogout, rofi, uwsm, LazyVim, Noctalia, qt5ct/qt6ct e GTK já vêm com o
+   script**.
+2. Coloque os wallpapers no lugar. O Noctalia usa `~/Downloads/Wallpapers_Noctalia` (o script
+   avisa se a pasta não existir), o `hyprlock.conf` usa `~/Imagens/Hyprlock/3.jpg`, e o
    `hyprpaper.conf` usa `~/Pictures/Wallpapers/3.jpg`.
 3. **Reinicie.**
-4. Escolha o wallpaper de novo no Noctalia.
+4. Abra o Noctalia e confira os plugins. A pasta de plugins (~33 MB) não vai no repositório;
+   se algum dos ativados no `settings.toml` não aparecer, reinstale pelas configurações.
 
 ---
 
@@ -60,7 +62,10 @@ forma interativa. Nesse caso, responda e o script continua.
 | **yay + AUR** | Compila o `yay-bin` e instala `packages/aur.txt` (Brave, VS Code, Heroic, wlogout, Claude Code). O Spotify vem do repositório oficial (`spotify-launcher`) |
 | **zsh** | Define o zsh como shell padrão e instala o oh-my-zsh + `zsh-autosuggestions` e `zsh-syntax-highlighting` |
 | **Desktop** | Hyprland, uwsm, Quickshell, Noctalia, portais xdg, polkit-gnome, gnome-keyring |
-| **Temas** | GTK Graphite-Dark, ícones Tela-dracula (do GitHub, se ainda não existirem), Kvantum, qt5ct/qt6ct, nwg-look. Aplica o tema, os ícones, o cursor e as fontes via `gsettings` |
+| **Temas** | GTK Graphite-Dark (com os links em `~/.config/gtk-4.0` para apps libadwaita), ícones `breeze-dark`, cursor Adwaita, Qt6 com o estilo Breeze + cores BreezeDark (`qt6ct`), `qt5ct` e `kdeglobals`. Aplica o tema, os ícones, o cursor e as fontes via `gsettings`. Os ícones Tela-dracula continuam sendo instalados do GitHub, mas não são mais o tema ativo |
+| **LazyVim** | Neovim + `ripgrep`, `fd`, `fzf`, `lazygit` e `tree-sitter-cli`. Restaura `~/.config/nvim` (tema Gruvbox transparente) e baixa os plugins nas versões do `lazy-lock.json` |
+| **Noctalia** | Copia `noctalia/settings.toml` (barra, plugins, wallpapers) e a paleta `Mine` para `~/.local/state/noctalia` |
+| **Scripts** | Instala o `scripts/perfil.sh` como comando `perfil` em `~/.local/bin`. Os scripts de monitor do Hyprland vão junto com `configs/hypr` |
 | **Fontes** | JetBrains Mono Nerd, Hack, Noto (+ CJK e emoji), DejaVu, Liberation, Adwaita |
 | **Dolphin** | Só o Dolphin e o que ele precisa fora do Plasma: kio-extras/fuse, miniaturas (vídeo, PDF), formatos de imagem, Ark, udiskie e o menu "Abrir com" funcionando no Hyprland. Sem Konsole, Baloo, kde-cli-tools nem kde-gtk-config |
 | **Docker** | `docker`, `docker-compose`, `docker-buildx`. Adiciona o seu usuário ao grupo `docker` (**docker sem sudo**), ativa o serviço e testa com `hello-world` |
@@ -70,7 +75,7 @@ forma interativa. Nesse caso, responda e o script continua.
 | **GRUB** | Detecta sozinho onde está o `grub.cfg`, ajusta os parâmetros do kernel e ativa o os-prober (Windows no menu) |
 | **Timeshift** | Modo btrfs: 6 snapshots por hora, 5 diários, 5 semanais, 30 mensais e 5 de boot. Cria um snapshot inicial |
 | **grub-btrfs** | Snapshots do Timeshift aparecem no menu do GRUB automaticamente (`grub-btrfsd --timeshift-auto`) |
-| **Configs** | Restaura `~/.config/hypr`, `kitty`, `wlogout` (com os ícones), `rofi` e `uwsm` da pasta `configs/`. O que já existir vira `*.antes` |
+| **Configs** | Restaura `~/.config/hypr`, `kitty`, `wlogout` (com os ícones), `rofi`, `uwsm`, `nvim`, `qt5ct`, `qt6ct`, `gtk-3.0`, `gtk-4.0` e `kdeglobals` da pasta `configs/`. O que já existir vira `*.antes` |
 | **SDDM** | Tema [SilentSDDM](https://github.com/uiriansan/SilentSDDM) com as suas configs e o fundo `pillars-of-creation` (`etc/sddm-silent`), teclado virtual e o espelhamento eDP/HDMI no login (`Xsetup`) |
 | **TLP** | Substitui o power-profiles-daemon (veja abaixo) |
 | **Serviços** | NetworkManager, Bluetooth, CUPS, Docker, cronie, timesyncd, ufw, TLP, SDDM |
@@ -103,8 +108,9 @@ cat /sys/bus/pci/devices/0000:01:00.0/power/runtime_status   # "suspended" = RTX
 ### Trocar o perfil (ventoinha)
 
 No perfil `balanced-performance`, o firmware da Acer liga a ventoinha forte mesmo com a CPU fria.
-O `scripts/perfil.sh` troca o perfil do firmware na hora. Ele **não** é executado pelo
-`pos-instalacao.sh`. Para usar como comando `perfil`, copie para o PATH:
+O `scripts/perfil.sh` troca o perfil do firmware na hora. O `pos-instalacao.sh` já o instala
+como comando `perfil` em `~/.local/bin` (essa pasta precisa estar no `PATH`, o que o `~/.zshrc`
+do HD externo já faz). Para reinstalar à mão:
 
 ```bash
 install -m 755 scripts/perfil.sh ~/.local/bin/perfil
@@ -316,18 +322,25 @@ kernel). Espere ele terminar antes de reiniciar: `sudo akmods --kernels <versão
 ## Arquivos da pasta
 
 ```
-Script_backup/
+system_script/
 ├── pos-instalacao.sh     # o script
 ├── README.md
 ├── configs/              # copiado para ~/.config/
-│   ├── hypr/             # hyprland.lua, hypridle, hyprlock, monitores, scripts
+│   ├── hypr/             # hyprland.lua, hypridle, hyprlock, monitor-profile.sh, lid-monitor-mode.sh
 │   ├── kitty/            # kitty.conf + temas
 │   ├── wlogout/          # layout, css e ícones
 │   ├── rofi/             # config.rasi, tema e paletas de cores
-│   └── uwsm/             # env-hyprland (NVIDIA como GPU primária com HDMI)
+│   ├── uwsm/             # env-hyprland (NVIDIA como GPU primária com HDMI)
+│   ├── nvim/             # LazyVim (Gruvbox transparente) + lazy-lock.json
+│   ├── qt5ct/ qt6ct/     # tema Qt (qt6ct: estilo Breeze + cores BreezeDark)
+│   ├── gtk-3.0/ gtk-4.0/ # settings.ini (Graphite-Dark, breeze-dark, Adwaita)
+│   └── kdeglobals        # cores dos apps KDE (Dolphin, Ark)
+├── noctalia/             # copiado para ~/.local/state/noctalia/
+│   ├── settings.toml     # barra, plugins, tema e wallpapers
+│   └── community-palettes/Mine.json   # paleta de cores em uso
 ├── scripts/
 │   ├── eduroam.sh        # conecta à rede eduroam (rodar manualmente, veja "Eduroam")
-│   ├── perfil.sh         # troca o perfil de energia/ventoinha (veja "Trocar o perfil")
+│   ├── perfil.sh         # troca o perfil de energia/ventoinha (instalado como "perfil")
 │   └── secureboot/       # Secure Boot no Arch, Ubuntu+NVIDIA e Fedora+NVIDIA (veja "Secure Boot")
 ├── packages/
 │   ├── pacman.txt        # pacotes oficiais (um por linha, pode editar)
@@ -347,7 +360,8 @@ Para adicionar ou remover programas, edite `packages/pacman.txt` ou `packages/au
 
 Antes de alterar os arquivos abaixo, o script guarda o original com o sufixo `.antes`:
 `/etc/pacman.conf`, `/etc/mkinitcpio.conf`, `/etc/default/grub`, `/etc/fstab` e os arquivos de
-`~/.config/{hypr,kitty,wlogout,rofi,uwsm}` que já existiam.
+`~/.config/{hypr,kitty,wlogout,rofi,uwsm,nvim,qt5ct,qt6ct,gtk-3.0,gtk-4.0}`, o `kdeglobals` e o
+`~/.local/state/noctalia/settings.toml` que já existiam.
 
 ## Problemas comuns
 

@@ -1,0 +1,157 @@
+config_version = 16
+
+[bar.default]
+border = "on_surface_variant"
+center = [ "clock", "caffeine", "audio_visualizer", "media", "usage" ]
+compositor_blur = false
+concave_edge_corners = false
+end = [ "network", "bluetooth", "volume", "battery", "tray", "notifications" ]
+font_family = "JetBrainsMono NF Light"
+margin_ends = 3
+radius_bottom_left = 20
+radius_bottom_right = 21
+radius_top_left = 16
+radius_top_right = 23
+scale = 1.0500000081956387
+start = [ "workspaces", "active_window" ]
+thickness = 27
+widget_spacing = 7
+
+[lockscreen]
+enabled = false
+
+[lockscreen_widgets]
+enabled = false
+schema_version = 2
+widget_order = [ "lockscreen-login-box@HDMI-A-1", "lockscreen-login-box@eDP-1", "lockscreen-login-box@FALLBACK" ]
+
+    [lockscreen_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@FALLBACK"]
+    box_height = 196.0
+    box_width = 810.0
+    cx = 960.0
+    cy = 898.0
+    output = "FALLBACK"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "login_box"
+
+        [lockscreen_widgets.widget."lockscreen-login-box@FALLBACK".settings]
+        background_color = "surface_container"
+        background_opacity = 0.88
+        background_radius = 12.0
+        center_password_text = false
+        input_opacity = 1.0
+        input_radius = 6.0
+        layout = "regular"
+        show_caps_lock = true
+        show_keyboard_layout = true
+        show_login_button = true
+        show_media = true
+        show_password_reveal = true
+        show_session_buttons = true
+        show_unlock_hint = true
+        show_weather = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@HDMI-A-1"]
+    box_height = 196.0
+    box_width = 810.0
+    cx = 960.0
+    cy = 898.0
+    output = "HDMI-A-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "login_box"
+
+        [lockscreen_widgets.widget."lockscreen-login-box@HDMI-A-1".settings]
+        background_color = "surface_container"
+        background_opacity = 0.88
+        background_radius = 12.0
+        center_password_text = false
+        input_opacity = 1.0
+        input_radius = 6.0
+        layout = "regular"
+        show_caps_lock = true
+        show_keyboard_layout = true
+        show_login_button = true
+        show_media = true
+        show_password_reveal = true
+        show_session_buttons = true
+        show_unlock_hint = true
+        show_weather = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@eDP-1"]
+    box_height = 196.0
+    box_width = 810.0
+    cx = 960.0
+    cy = 898.0
+    output = "eDP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "login_box"
+
+        [lockscreen_widgets.widget."lockscreen-login-box@eDP-1".settings]
+        background_color = "surface_container"
+        background_opacity = 0.88
+        background_radius = 12.0
+        center_password_text = false
+        input_opacity = 1.0
+        input_radius = 6.0
+        layout = "regular"
+        show_caps_lock = true
+        show_keyboard_layout = true
+        show_login_button = true
+        show_media = true
+        show_password_reveal = true
+        show_session_buttons = true
+        show_unlock_hint = true
+        show_weather = true
+
+[plugins]
+enabled = [
+    "ayagmar/headroom",
+    "noctalia/notes",
+    "ishan0121/wallpaper-deck",
+    "noctalia/wallhaven",
+    "kavya-nama/wallpaper-switcher",
+    "noctalia/wallpaper_depth"
+]
+
+[shell]
+font_family = "JetBrainsMono NF"
+lang = "pt-BR"
+
+[theme]
+builtin = "Noctalia"
+community_palette = "Mine"
+mode = "dark"
+source = "community"
+wallpaper_scheme = "m3-content"
+
+    [theme.templates]
+    community_ids = []
+
+[wallpaper]
+directory = "/home/lucas/Downloads/Wallpapers_Noctalia"
+
+    [wallpaper.default]
+    path = "/home/lucas/Downloads/Wallpapers_Noctalia/wallhaven-21zgrx_1920x1080.png"
+
+    [wallpaper.last]
+    path = "/home/lucas/Downloads/Wallpapers_Noctalia/wallhaven-21zgrx_1920x1080.png"
+
+    [wallpaper.monitors.HDMI-A-1]
+    path = "/home/lucas/Downloads/Wallpapers_Noctalia/wallhaven-21zgrx_1920x1080.png"
+
+    [wallpaper.monitors.eDP-1]
+    path = "/home/lucas/Downloads/Wallpapers_Noctalia/wallhaven-gw5xyq_1920x1080.png"
+
+[widget.usage]
+type = "ayagmar/headroom:usage"

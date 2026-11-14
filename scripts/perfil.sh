@@ -51,7 +51,11 @@ if ! grep -qw -- "$alvo" "$CHOICES_FILE"; then
     exit 1
 fi
 
-echo "$alvo" | sudo tee "$PROFILE_FILE" >/dev/null
+if ! echo "$alvo" | sudo tee "$PROFILE_FILE" >/dev/null 2>&1; then
+    echo "O firmware recusou o perfil: $alvo" >&2
+    [[ $alvo == performance ]] && echo "Neste Nitro o turbo não é aceito via software; tente a tecla NitroSense." >&2
+    exit 1
+fi
 
 if (( fixo )); then
     sudo sed -i "s/^PLATFORM_PROFILE_ON_AC=.*/PLATFORM_PROFILE_ON_AC=$alvo/" "$TLP_CONF"
